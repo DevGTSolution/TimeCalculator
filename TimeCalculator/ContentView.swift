@@ -33,7 +33,7 @@ func formattedTimeString(from totalSeconds: Int) -> String {
     return "\(days)d \(hours)h \(minutes)m \(seconds)s"
 }
 
-// MARK: - CalculatorButton
+// MARK: - Calculator Button
 struct CalculatorButton: View {
     let label: String
     var backgroundColor: Color = .gray
@@ -51,25 +51,23 @@ struct CalculatorButton: View {
     }
 }
 
-// MARK: - ContentView
+// MARK: - Main ContentView
 struct ContentView: View {
-    /**
-     We'll store typed digits in an array (up to 6 digits for HH:MM:SS).
-     This allows a real "backspace" that removes the last digit typed.
-    */
+    // Store typed digits in an array for real backspace logic (HH:MM:SS => up to 6 digits)
     @State private var typedDigits: [Character] = []
     
+    // The list of time entries
     @State private var timeEntries: [TimeEntry] = []
     
-    // Convert typed digits into a "HH:MM:SS" display
+    // Derived property: shows the current typed digits as HH:MM:SS
     private var displayTime: String {
         let neededZeros = 6 - typedDigits.count
         let zeros = [Character](repeating: "0", count: neededZeros)
-        let raw = zeros + typedDigits  // total 6 chars: e.g. "000028"
+        let raw = zeros + typedDigits  // total of 6 chars
         
-        let hhString = String(raw[0...1]) // first 2 => hours
-        let mmString = String(raw[2...3]) // next 2 => minutes
-        let ssString = String(raw[4...5]) // last 2 => seconds
+        let hhString = String(raw[0...1])
+        let mmString = String(raw[2...3])
+        let ssString = String(raw[4...5])
         
         return "\(hhString):\(mmString):\(ssString)"
     }
@@ -87,7 +85,7 @@ struct ContentView: View {
         return TimeEntry(days: 0, hours: hh, minutes: mm, seconds: ss)
     }
     
-    // Sum of all entries
+    // Sum of all entries in the history
     private var totalSeconds: Int {
         timeEntries.reduce(0) { $0 + $1.totalSeconds }
     }
@@ -96,7 +94,7 @@ struct ContentView: View {
         NavigationView {
             VStack(spacing: 20) {
                 
-                // Display
+                // 1) Time Display
                 Text(displayTime)
                     .font(.system(size: 36, weight: .bold))
                     .padding()
@@ -105,7 +103,7 @@ struct ContentView: View {
                     .cornerRadius(12)
                     .padding(.horizontal)
                 
-                // -- Rows 1-3 (4 columns) --
+                // 2) Keypad (Rows 1-3)
                 VStack(spacing: 10) {
                     // Row 1: 7 8 9 ⌫
                     HStack(spacing: 10) {
@@ -138,17 +136,13 @@ struct ContentView: View {
                     }
                 }
                 
-                // -- Row 4: blank, 0, blank, = --
+                // 3) Row 4: blank, 0, blank, =
                 HStack(spacing: 10) {
-                    CalculatorButton(label: " ", backgroundColor: .clear) {
-                        // left blank
-                    }
+                    CalculatorButton(label: " ", backgroundColor: .clear) { }
                     
                     CalculatorButton(label: "0") { handleDigitTap("0") }
                     
-                    CalculatorButton(label: " ", backgroundColor: .clear) {
-                        // middle blank
-                    }
+                    CalculatorButton(label: " ", backgroundColor: .clear) { }
                     
                     CalculatorButton(label: "=", backgroundColor: .blue) {
                         handleEquals()
@@ -156,11 +150,11 @@ struct ContentView: View {
                 }
                 .padding(.bottom, 10)
                 
-                // Show total
+                // 4) Show total
                 Text("Total: \(formattedTimeString(from: totalSeconds))")
                     .font(.title3)
                 
-                // (Optional) Clear All History button
+                // Optional: "Clear All History" button
                 HStack {
                     Spacer()
                     Button("Clear All History") {
@@ -173,7 +167,7 @@ struct ContentView: View {
                     Spacer()
                 }
                 
-                // List of entries
+                // 5) History List
                 List {
                     ForEach(timeEntries) { entry in
                         NavigationLink(destination: EditEntryView(entry: entry, onSave: { updated in
@@ -188,13 +182,33 @@ struct ContentView: View {
                 }
                 .listStyle(.plain)
                 
-                Spacer()
+                // (No extra Spacer() here so the list can expand fully)
+                
+                // 6) Logo & Credits at the Bottom
+                HStack {
+                    Spacer()
+                    VStack {
+                        // Make sure you have "AppLogo" in Assets.xcassets
+                        Image("AppLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 60, height: 60)
+                            .padding(.bottom, 4)
+                        
+                        Text("Developed by GTSolution.pro\nwith the help of ChatGPT")
+                            .font(.footnote)
+                            .multilineTextAlignment(.center)
+                    }
+                    Spacer()
+                }
+                // A small bottom padding to separate from screen edge
+                .padding(.bottom, 8)
             }
             .navigationTitle("Time Calculator")
         }
     }
     
-    // MARK: - Actions
+    // MARK: - Functions
     
     private func handleDigitTap(_ digit: String) {
         guard let ch = digit.first else { return }
@@ -219,7 +233,7 @@ struct ContentView: View {
     }
     
     private func handleEquals() {
-        // same as handleAdd (or do something else if you'd like)
+        // Alternatively, do something else if you want a different behavior
         timeEntries.append(parsedTimeEntry)
         typedDigits.removeAll()
     }

@@ -1,292 +1,234 @@
 import SwiftUI
 
-// MARK: - Model
-struct TimeEntry: Identifiable {
-    let id: UUID
-    var days: Int
+struct CalculatorEntry: Identifiable, Equatable {
+    let id = UUID()
     var hours: Int
     var minutes: Int
     var seconds: Int
-    
-    init(id: UUID = UUID(), days: Int, hours: Int, minutes: Int, seconds: Int) {
-        self.id = id
-        self.days = days
-        self.hours = hours
-        self.minutes = minutes
-        self.seconds = seconds
-    }
-    
-    var totalSeconds: Int {
-        (days * 24 * 3600) + (hours * 3600) + (minutes * 60) + seconds
-    }
 }
 
-// MARK: - Utility
-func formattedTimeString(from totalSeconds: Int) -> String {
-    let days = totalSeconds / (24 * 3600)
-    let remainderDays = totalSeconds % (24 * 3600)
-    let hours = remainderDays / 3600
-    let remainderHours = remainderDays % 3600
-    let minutes = remainderHours / 60
-    let seconds = remainderHours % 60
-    
-    return "\(days)d \(hours)h \(minutes)m \(seconds)s"
-}
-
-// MARK: - CalculatorButton
-struct CalculatorButton: View {
-    let label: String
-    var backgroundColor: Color = .gray
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            Text(label)
-                .font(.title)
-                .foregroundColor(.white)
-                .frame(width: 60, height: 60)
-                .background(backgroundColor)
-                .cornerRadius(8)
-        }
-    }
-}
-
-// MARK: - ContentView
 struct ContentView: View {
-    /**
-     We'll store typed digits in an array (up to 6 digits for HH:MM:SS).
-     This allows a real "backspace" that removes the last digit typed.
-    */
-    @State private var typedDigits: [Character] = []
+    @State private var input = "" // Raw digits, e.g. "222"
+    @State private var lastResult: String? = nil
+    @State private var pendingOperation: Operation? = nil
+    @State private var storedSeconds: Int? = nil
+    @State private var history: [CalculatorEntry] = []
     
-    @State private var timeEntries: [TimeEntry] = []
+    enum Operation: String { case add = "+", subtract = "-", multiply = "×", divide = "÷" }
     
-    // Convert typed digits into a "HH:MM:SS" display
-    private var displayTime: String {
-        let neededZeros = 6 - typedDigits.count
-        let zeros = [Character](repeating: "0", count: neededZeros)
-        let raw = zeros + typedDigits  // total 6 chars: e.g. "000028"
-        
-        let hhString = String(raw[0...1]) // first 2 => hours
-        let mmString = String(raw[2...3]) // next 2 => minutes
-        let ssString = String(raw[4...5]) // last 2 => seconds
-        
-        return "\(hhString):\(mmString):\(ssString)"
+    // Right-to-left: seconds, minutes, hours
+    private var hours: Int {
+        let padded = input.leftPadding(toLength: 6, withPad: "0")
+        return Int(padded.prefix(2)) ?? 0
+    }
+    private var minutes: Int {
+        let padded = input.leftPadding(toLength: 6, withPad: "0")
+        return Int(padded.dropFirst(2).prefix(2)) ?? 0
+    }
+    private var seconds: Int {
+        let padded = input.leftPadding(toLength: 6, withPad: "0")
+        return Int(padded.suffix(2)) ?? 0
     }
     
-    // Parse typed digits into a TimeEntry
-    private var parsedTimeEntry: TimeEntry {
-        let neededZeros = 6 - typedDigits.count
-        let zeros = [Character](repeating: "0", count: neededZeros)
-        let raw = zeros + typedDigits
-        
-        let hh = Int(String(raw[0...1])) ?? 0
-        let mm = Int(String(raw[2...3])) ?? 0
-        let ss = Int(String(raw[4...5])) ?? 0
-        
-        return TimeEntry(days: 0, hours: hh, minutes: mm, seconds: ss)
+    private var formatted: String {
+        String(format: "%02d:%02d:%02d", hours, minutes, seconds)
     }
     
-    // Sum of all entries
     private var totalSeconds: Int {
-        timeEntries.reduce(0) { $0 + $1.totalSeconds }
+        hours * 3600 + minutes * 60 + seconds
+    }
+    
+    // Running total of all history entries
+    private var totalHistorySeconds: Int {
+        history.reduce(0) { $0 + $1.hours * 3600 + $1.minutes * 60 + $1.seconds }
+    }
+    private var totalHistoryFormatted: String {
+        let h = totalHistorySeconds / 3600
+        let m = (totalHistorySeconds % 3600) / 60
+        let s = totalHistorySeconds % 60
+        return String(format: "%02d:%02d:%02d  (%dh %dm %ds)", h, m, s, h, m, s)
     }
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
+        ScrollView {
+            VStack(spacing: 16) {
+                Spacer(minLength: 24)
+                Text(formatted)
+                    .font(.system(size: 56, weight: .bold, design: .monospaced))
+                    .padding(.top)
+                    .frame(maxWidth: .infinity, alignment: .center)
                 
-                // Display
-                Text(displayTime)
-                    .font(.system(size: 36, weight: .bold))
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.black.opacity(0.1))
-                    .cornerRadius(12)
-                    .padding(.horizontal)
+                Text("\(hours)h \(minutes)m \(seconds)s")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
                 
-                // -- Rows 1-3 (4 columns) --
-                VStack(spacing: 10) {
-                    // Row 1: 7 8 9 ⌫
-                    HStack(spacing: 10) {
-                        CalculatorButton(label: "7") { handleDigitTap("7") }
-                        CalculatorButton(label: "8") { handleDigitTap("8") }
-                        CalculatorButton(label: "9") { handleDigitTap("9") }
-                        CalculatorButton(label: "⌫", backgroundColor: .orange) {
-                            handleBackspace()
-                        }
-                    }
-                    
-                    // Row 2: 4 5 6 C
-                    HStack(spacing: 10) {
-                        CalculatorButton(label: "4") { handleDigitTap("4") }
-                        CalculatorButton(label: "5") { handleDigitTap("5") }
-                        CalculatorButton(label: "6") { handleDigitTap("6") }
-                        CalculatorButton(label: "C", backgroundColor: .red) {
-                            handleClear()
-                        }
-                    }
-                    
-                    // Row 3: 1 2 3 +
-                    HStack(spacing: 10) {
-                        CalculatorButton(label: "1") { handleDigitTap("1") }
-                        CalculatorButton(label: "2") { handleDigitTap("2") }
-                        CalculatorButton(label: "3") { handleDigitTap("3") }
-                        CalculatorButton(label: "+", backgroundColor: .green) {
-                            handleAdd()
-                        }
-                    }
+                if let result = lastResult {
+                    Text(result)
+                        .font(.title2)
+                        .foregroundColor(.accentColor)
+                        .padding(.top, 8)
                 }
-                
-                // -- Row 4: blank, 0, blank, = --
-                HStack(spacing: 10) {
-                    CalculatorButton(label: " ", backgroundColor: .clear) {
-                        // left blank
-                    }
-                    
-                    CalculatorButton(label: "0") { handleDigitTap("0") }
-                    
-                    CalculatorButton(label: " ", backgroundColor: .clear) {
-                        // middle blank
-                    }
-                    
-                    CalculatorButton(label: "=", backgroundColor: .blue) {
-                        handleEquals()
-                    }
-                }
-                .padding(.bottom, 10)
-                
-                // Show total
-                Text("Total: \(formattedTimeString(from: totalSeconds))")
-                    .font(.title3)
-                
-                // (Optional) Clear All History button
-                HStack {
-                    Spacer()
-                    Button("Clear All History") {
-                        clearAllHistory()
-                    }
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.red)
-                    .cornerRadius(8)
-                    Spacer()
-                }
-                
-                // List of entries
-                List {
-                    ForEach(timeEntries) { entry in
-                        NavigationLink(destination: EditEntryView(entry: entry, onSave: { updated in
-                            if let idx = timeEntries.firstIndex(where: { $0.id == entry.id }) {
-                                timeEntries[idx] = updated
-                            }
-                        })) {
-                            Text(formattedTimeString(from: entry.totalSeconds))
-                        }
-                    }
-                    .onDelete(perform: deleteEntry)
-                }
-                .listStyle(.plain)
                 
                 Spacer()
+                
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 4), spacing: 16) {
+                    ForEach(keypadButtons, id: \ .self) { key in
+                        Button(action: { handleKey(key) }) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(key.isOperator ? Color.accentColor : Color(.systemGray5))
+                                if key == "⌫" {
+                                    Image(systemName: "delete.left")
+                                        .font(.title)
+                                        .foregroundColor(key.isOperator ? .white : .primary)
+                                } else {
+                                    Text(key)
+                                        .font(.title)
+                                        .fontWeight(key.isOperator ? .bold : .regular)
+                                        .foregroundColor(key.isOperator ? .white : .primary)
+                                }
+                            }
+                            .frame(height: 60)
+                        }
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+                
+                // History Section
+                if !history.isEmpty {
+                    Text("Total: \(totalHistoryFormatted)")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text("History")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                    List {
+                        ForEach(history) { entry in
+                            HStack {
+                                Text(String(format: "%02d:%02d:%02d", entry.hours, entry.minutes, entry.seconds))
+                                    .font(.system(.title3, design: .monospaced))
+                                Text("(\(entry.hours)h \(entry.minutes)m \(entry.seconds)s)")
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Button {
+                                    // Edit: load entry into input
+                                    input = String(format: "%d%02d%02d", entry.hours, entry.minutes, entry.seconds)
+                                } label: {
+                                    Image(systemName: "pencil")
+                                }
+                                Button {
+                                    // Delete: remove entry
+                                    if let idx = history.firstIndex(of: entry) {
+                                        history.remove(at: idx)
+                                    }
+                                } label: {
+                                    Image(systemName: "trash")
+                                }
+                            }
+                        }
+                        .onDelete { indices in
+                            history.remove(atOffsets: indices)
+                        }
+                    }
+                    .frame(height: min(CGFloat(history.count) * 56, 300))
+                    .listStyle(.plain)
+                    .padding(.horizontal, -20)
+                    .padding(.bottom, 32)
+                }
             }
-            .navigationTitle("Time Calculator")
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Color.clear.frame(height: 32)
+        }
+        .background(Color(.systemBackground))
+        .ignoresSafeArea(edges: .bottom)
+    }
+    
+    private var keypadButtons: [String] {
+        ["7","8","9","÷",
+         "4","5","6","×",
+         "1","2","3","-",
+         "0","⌫","C","+",
+         "="]
+    }
+    
+    private func handleKey(_ key: String) {
+        switch key {
+        case "C":
+            input = ""
+            lastResult = nil
+            pendingOperation = nil
+        case "⌫":
+            if !input.isEmpty { input.removeLast() }
+        case "+":
+            // Add to history
+            let entry = CalculatorEntry(hours: hours, minutes: minutes, seconds: seconds)
+            history.append(entry)
+            input = ""
+            lastResult = nil
+            pendingOperation = nil
+            storedSeconds = nil
+        case "=":
+            // Add to history and clear input (acts as "done")
+            let entry = CalculatorEntry(hours: hours, minutes: minutes, seconds: seconds)
+            history.append(entry)
+            input = ""
+            lastResult = nil
+            pendingOperation = nil
+            storedSeconds = nil
+        case "-", "×", "÷":
+            if pendingOperation == nil {
+                storedSeconds = totalSeconds
+                input = ""
+                pendingOperation = Operation(rawValue: key)
+            } else if let op = pendingOperation, let lhs = storedSeconds {
+                let rhs = totalSeconds
+                let result = calculate(lhs: lhs, rhs: rhs, op: op)
+                lastResult = formatResult(seconds: result)
+                storedSeconds = result
+                input = ""
+                pendingOperation = Operation(rawValue: key)
+            }
+        default:
+            if input.count < 6, key.allSatisfy({ $0.isNumber }) {
+                input.append(key)
+            }
         }
     }
     
-    // MARK: - Actions
-    
-    private func handleDigitTap(_ digit: String) {
-        guard let ch = digit.first else { return }
-        if typedDigits.count < 6 {
-            typedDigits.append(ch)
+    private func calculate(lhs: Int, rhs: Int, op: Operation) -> Int {
+        switch op {
+        case .add: return lhs + rhs
+        case .subtract: return max(lhs - rhs, 0)
+        case .multiply: return lhs * rhs
+        case .divide: return rhs == 0 ? 0 : lhs / rhs
         }
     }
     
-    private func handleBackspace() {
-        if !typedDigits.isEmpty {
-            typedDigits.removeLast()
-        }
-    }
-    
-    private func handleClear() {
-        typedDigits.removeAll()
-    }
-    
-    private func handleAdd() {
-        timeEntries.append(parsedTimeEntry)
-        typedDigits.removeAll()
-    }
-    
-    private func handleEquals() {
-        // same as handleAdd (or do something else if you'd like)
-        timeEntries.append(parsedTimeEntry)
-        typedDigits.removeAll()
-    }
-    
-    private func clearAllHistory() {
-        timeEntries.removeAll()
-        typedDigits.removeAll()
-    }
-    
-    private func deleteEntry(at offsets: IndexSet) {
-        timeEntries.remove(atOffsets: offsets)
+    private func formatResult(seconds: Int) -> String {
+        let h = seconds / 3600
+        let m = (seconds % 3600) / 60
+        let s = seconds % 60
+        return String(format: "%02d:%02d:%02d  (%dh %dm %ds)", h, m, s, h, m, s)
     }
 }
 
-// MARK: - EditEntryView (Optional)
-struct EditEntryView: View {
-    @State private var tempDays: String
-    @State private var tempHours: String
-    @State private var tempMinutes: String
-    @State private var tempSeconds: String
-    
-    let entry: TimeEntry
-    let onSave: (TimeEntry) -> Void
-    
-    @Environment(\.presentationMode) var presentationMode
-    
-    init(entry: TimeEntry, onSave: @escaping (TimeEntry) -> Void) {
-        self.entry = entry
-        self.onSave = onSave
-        
-        _tempDays = State(initialValue: "\(entry.days)")
-        _tempHours = State(initialValue: "\(entry.hours)")
-        _tempMinutes = State(initialValue: "\(entry.minutes)")
-        _tempSeconds = State(initialValue: "\(entry.seconds)")
-    }
-    
-    var body: some View {
-        Form {
-            Section(header: Text("Edit Entry")) {
-                TextField("Days", text: $tempDays)
-                    .keyboardType(.numberPad)
-                TextField("Hours", text: $tempHours)
-                    .keyboardType(.numberPad)
-                TextField("Minutes", text: $tempMinutes)
-                    .keyboardType(.numberPad)
-                TextField("Seconds", text: $tempSeconds)
-                    .keyboardType(.numberPad)
-            }
-            
-            Button("Save") {
-                let days = Int(tempDays) ?? 0
-                let hours = Int(tempHours) ?? 0
-                let minutes = Int(tempMinutes) ?? 0
-                let seconds = Int(tempSeconds) ?? 0
-                
-                let updated = TimeEntry(
-                    id: entry.id,
-                    days: days,
-                    hours: hours,
-                    minutes: minutes,
-                    seconds: seconds
-                )
-                
-                onSave(updated)
-                presentationMode.wrappedValue.dismiss()
-            }
+private extension String {
+    var isOperator: Bool { ["+","-","×","÷"].contains(self) }
+    func leftPadding(toLength: Int, withPad character: Character) -> String {
+        if self.count < toLength {
+            return String(repeatElement(character, count: toLength - self.count)) + self
+        } else {
+            return String(self.suffix(toLength))
         }
-        .navigationTitle("Edit Time Entry")
     }
+}
+
+#Preview {
+    ContentView()
 }

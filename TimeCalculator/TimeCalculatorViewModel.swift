@@ -205,3 +205,4 @@ class TimeCalculatorViewModel: ObservableObject {
         return String(format: "%.2f", number)
     }
 }
+ 

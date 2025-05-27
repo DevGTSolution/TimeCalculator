@@ -1,8 +1,9 @@
 import SwiftUI
 import SwiftData
+import Foundation
 
 struct TimeEntryRow: View {
-    let entry: TimeEntry
+    let entry: TimeEntryRowEntry
     
     var body: some View {
         HStack(spacing: 12) {
@@ -37,7 +38,7 @@ struct TimeEntryRow: View {
         .contentShape(Rectangle()) // Make the entire row tappable
     }
     
-    private func colorForEntry(_ entry: TimeEntry) -> Color {
+    private func colorForEntry(_ entry: TimeEntryRowEntry) -> Color {
         switch entry.color {
         case "red": return .red
         case "green": return .green
@@ -46,5 +47,19 @@ struct TimeEntryRow: View {
         case "orange": return .orange
         default: return .blue
         }
+    }
+}
+
+struct TimeEntryRowEntry: Identifiable, Equatable {
+    let id = UUID()
+    var hours: Int
+    var minutes: Int
+    var seconds: Int
+    var label: String = ""
+    var color: String = "blue"
+    var date: Date = Date()
+    
+    var displayString: String {
+        String(format: "%02d:%02d", hours, minutes)
     }
 } 

@@ -8,6 +8,8 @@ struct CalculatorEntry: Identifiable, Equatable {
 }
 
 struct ContentView: View {
+    @AppStorage("isDarkMode") private var isDarkMode = false
+    @State private var showMenu = false
     @State private var input = "" // Raw digits, e.g. "222"
     @State private var lastResult: String? = nil
     @State private var pendingOperation: Operation? = nil
@@ -50,6 +52,38 @@ struct ContentView: View {
     }
     
     var body: some View {
+        ZStack(alignment: .leading) {
+            // Main content (your ScrollView and everything else)
+            mainContent
+                .blur(radius: showMenu ? 8 : 0)
+                .animation(.easeInOut, value: showMenu)
+
+            // Dimmed background when menu is open
+            if showMenu {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                    .onTapGesture { withAnimation { showMenu = false } }
+            }
+
+            // Side menu
+            if showMenu {
+                SideMenu(isDarkMode: $isDarkMode, showMenu: $showMenu)
+                    .frame(width: 260)
+                    .transition(.move(edge: .leading))
+            }
+        }
+        .preferredColorScheme(isDarkMode ? .dark : .light)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(action: { withAnimation { showMenu.toggle() } }) {
+                    Image(systemName: "line.3.horizontal")
+                        .imageScale(.large)
+                }
+            }
+        }
+    }
+    
+    private var mainContent: some View {
         ScrollView {
             VStack(spacing: 16) {
                 Spacer(minLength: 24)
@@ -72,29 +106,57 @@ struct ContentView: View {
                 
                 Spacer()
                 
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 4), spacing: 16) {
-                    ForEach(keypadButtons, id: \ .self) { key in
-                        Button(action: { handleKey(key) }) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(key.isOperator ? Color.accentColor : Color(.systemGray5))
-                                if key == "⌫" {
-                                    Image(systemName: "delete.left")
-                                        .font(.title)
-                                        .foregroundColor(key.isOperator ? .white : .primary)
-                                } else {
-                                    Text(key)
-                                        .font(.title)
-                                        .fontWeight(key.isOperator ? .bold : .regular)
-                                        .foregroundColor(key.isOperator ? .white : .primary)
-                                }
-                            }
-                            .frame(height: 60)
-                        }
+                // Calculator Keypad - Attempting to match H&M app layout
+                VStack(spacing: 12) { // Spacing between rows
+                    HStack(spacing: 12) { // Top row: Clear, ⌫, ÷, ×
+                        CalculatorButton(key: "Clear", handleKey: handleKey)
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(1.0, contentMode: .fit) // Clear spans ~2 columns
+
+                        CalculatorButton(key: "⌫", handleKey: handleKey)
+                             .frame(maxWidth: .infinity)
+                             .aspectRatio(1.0, contentMode: .fit) // Backspace standard width
+
+                        CalculatorButton(key: "+", handleKey: handleKey)
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(1.0, contentMode: .fit) // Divide standard width
                     }
+
+                    HStack(spacing: 12) { // Second row: 7, 8, 9, -
+                         CalculatorButton(key: "7", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
+                         CalculatorButton(key: "8", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
+                         CalculatorButton(key: "9", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
+                        CalculatorButton(key: "-", handleKey: handleKey)
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(1.0, contentMode: .fit) // Multiply standard width
+                    }
+
+                    HStack(spacing: 12) { // Third row: 4, 5, 6, +
+                         CalculatorButton(key: "4", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
+                         CalculatorButton(key: "5", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
+                         CalculatorButton(key: "6", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
+                        CalculatorButton(key: "×", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
+                    }
+
+                    HStack(spacing: 12) { // Fourth row: 1, 2, 3
+                         CalculatorButton(key: "1", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
+                         CalculatorButton(key: "2", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
+                         CalculatorButton(key: "3", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
+                        CalculatorButton(key: "÷", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
+                    }
+
+                     HStack(spacing: 12) { // Fifth row: 0, =
+                         CalculatorButton(key: "0", handleKey: handleKey)
+                             .frame(maxWidth: .infinity)
+                             .aspectRatio(3.0, contentMode: .fit) // Make 0 span ~3 columns
+
+                         CalculatorButton(key: "=", handleKey: handleKey)
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(2.0, contentMode: .fit) // = standard width
+                     }
                 }
                 .padding(.horizontal)
-                .padding(.bottom, 8)
+                .padding(.bottom)
                 
                 // History Section
                 if !history.isEmpty {
@@ -139,22 +201,32 @@ struct ContentView: View {
                     .listStyle(.plain)
                     .padding(.horizontal, -20)
                     .padding(.bottom, 32)
+
+                    // Clear All History Button
+                    Button(role: .destructive) {
+                        history.removeAll()
+                    } label: {
+                        Text("Clear All History")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom)
                 }
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             Color.clear.frame(height: 32)
         }
-        .background(Color(.systemBackground))
+        .background(Color.white) // Use SwiftUI Color
         .ignoresSafeArea(edges: .bottom)
     }
     
     private var keypadButtons: [String] {
-        ["7","8","9","÷",
-         "4","5","6","×",
-         "1","2","3","-",
-         "0","⌫","C","+",
-         "="]
+        ["C","⌫","÷","×",
+         "7","8","9","-",
+         "4","5","6","+",
+         "1","2","3","=",
+         "0"]
     }
     
     private func handleKey(_ key: String) {
@@ -225,6 +297,81 @@ private extension String {
             return String(repeatElement(character, count: toLength - self.count)) + self
         } else {
             return String(self.suffix(toLength))
+        }
+    }
+}
+
+struct SideMenu: View {
+    @Binding var isDarkMode: Bool
+    @Binding var showMenu: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 32) {
+            Text("Menu")
+                .font(.title2)
+                .bold()
+                .padding(.top, 40)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            Toggle("Dark Mode", isOn: $isDarkMode)
+            // Add more menu items here
+
+            Spacer()
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .edgesIgnoringSafeArea(.all)
+    }
+}
+
+struct CalculatorButton: View {
+    let key: String
+    let handleKey: (String) -> Void
+
+    var body: some View {
+        Button(action: { handleKey(key) }) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(buttonBackgroundColor())
+
+                if key == "⌫" {
+                    Image(systemName: "delete.left")
+                        .font(.title)
+                        .foregroundColor(buttonForegroundColor())
+                } else {
+                    Text(key)
+                        .font(.title)
+                        .fontWeight(buttonFontWeight())
+                        .foregroundColor(buttonForegroundColor())
+                }
+            }
+        }
+    }
+
+    private var isOperator: Bool { ["+","-","×","÷"].contains(key) }
+
+    private func buttonBackgroundColor() -> Color {
+        switch key {
+        case "C": return .red
+        case "=": return .accentColor
+        case "⌫": return .gray.opacity(0.3)
+        case "+", "-", "×", "÷": return .accentColor
+        default: return .gray.opacity(0.3)
+        }
+    }
+
+    private func buttonForegroundColor() -> Color {
+        switch key {
+        case "C", "=", "+", "-", "×", "÷": return .white
+        default: return .primary
+        }
+    }
+
+    private func buttonFontWeight() -> Font.Weight {
+        switch key {
+        case "C", "=", "+", "-", "×", "÷": return .bold
+        default: return .regular
         }
     }
 }

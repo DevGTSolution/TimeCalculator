@@ -8,7 +8,6 @@ struct CalculatorEntry: Identifiable, Equatable {
 }
 
 struct ContentView: View {
-    @AppStorage("isDarkMode") private var isDarkMode = false
     @State private var showMenu = false
     @State private var input = "" // Raw digits, e.g. "222"
     @State private var lastResult: String? = nil
@@ -67,14 +66,13 @@ struct ContentView: View {
 
             // Side menu
             if showMenu {
-                SideMenu(isDarkMode: $isDarkMode, showMenu: $showMenu)
+                SideMenu(showMenu: $showMenu)
                     .frame(width: 260)
                     .transition(.move(edge: .leading))
             }
         }
-        .preferredColorScheme(isDarkMode ? .dark : .light)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
+            ToolbarItem(placement: .automatic) {
                 Button(action: { withAnimation { showMenu.toggle() } }) {
                     Image(systemName: "line.3.horizontal")
                         .imageScale(.large)
@@ -217,7 +215,7 @@ struct ContentView: View {
         .safeAreaInset(edge: .top, spacing: 0) {
             Color.clear.frame(height: 32)
         }
-        .background(Color.white) // Use SwiftUI Color
+        .background(Color.primary.opacity(0.05))
         .ignoresSafeArea(edges: .bottom)
     }
     
@@ -302,7 +300,7 @@ private extension String {
 }
 
 struct SideMenu: View {
-    @Binding var isDarkMode: Bool
+    @Environment(\.colorScheme) var colorScheme // Access color scheme
     @Binding var showMenu: Bool
 
     var body: some View {
@@ -313,19 +311,32 @@ struct SideMenu: View {
                 .padding(.top, 40)
                 .frame(maxWidth: .infinity, alignment: .center)
 
-            Toggle("Dark Mode", isOn: $isDarkMode)
             // Add more menu items here
 
             Spacer()
+            
+            // Copyright notice
+            VStack(alignment: .center, spacing: 4) {
+                Text("© 2024 GTSolution")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text("All rights reserved")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.bottom, 20)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
+        .background(colorScheme == .dark ? Color.black : Color.white) // Use adaptive background color for side menu
         .edgesIgnoringSafeArea(.all)
     }
 }
 
 struct CalculatorButton: View {
+    @Environment(\.colorScheme) var colorScheme
+    
     let key: String
     let handleKey: (String) -> Void
 
@@ -353,18 +364,19 @@ struct CalculatorButton: View {
 
     private func buttonBackgroundColor() -> Color {
         switch key {
-        case "C": return .red
+        case "C": return colorScheme == .dark ? Color.gray : .red // Gray in dark mode, red in light mode
         case "=": return .accentColor
-        case "⌫": return .gray.opacity(0.3)
+        case "⌫": return Color.gray.opacity(0.5) // Semi-transparent gray for backspace
         case "+", "-", "×", "÷": return .accentColor
-        default: return .gray.opacity(0.3)
+        default: return colorScheme == .dark ? Color.gray.opacity(0.3) : Color.gray.opacity(0.1) // Lighter gray in light, darker in dark
         }
     }
 
     private func buttonForegroundColor() -> Color {
         switch key {
-        case "C", "=", "+", "-", "×", "÷": return .white
-        default: return .primary
+        case "C": return .white // White text for the red/gray Clear button
+        case "=", "+", "-", "×", "÷": return .white
+        default: return .primary // Automatically adapting text color for numbers
         }
     }
 

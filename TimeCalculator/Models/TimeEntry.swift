@@ -3,6 +3,7 @@ import SwiftData
 
 public enum TimeCalculatorModels {}
 
+@available(iOS 17, *)
 @Model
 final class TimeEntry {
     var id: UUID

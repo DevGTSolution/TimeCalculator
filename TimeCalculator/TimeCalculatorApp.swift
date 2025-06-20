@@ -10,32 +10,26 @@ import SwiftData
 
 @main
 struct TimeCalculatorApp: App {
-    let container: ModelContainer
-    
-    init() {
+    @StateObject private var themeManager = ThemeManager()
+
+    var sharedModelContainer: ModelContainer = {
+        let schema = Schema([
+            TimeEntry.self,
+        ])
+        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+
         do {
-            // Configure SwiftData with iCloud sync
-            let schema = Schema([TimeEntry.self])
-            let modelConfiguration = ModelConfiguration(
-                schema: schema,
-                cloudKitDatabase: .automatic
-            )
-            
-            container = try ModelContainer(
-                for: schema,
-                configurations: [modelConfiguration]
-            )
+            return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
-            fatalError("Could not initialize ModelContainer: \(error)")
+            fatalError("Could not create ModelContainer: \(error)")
         }
-    }
-    
+    }()
+
     var body: some Scene {
         WindowGroup {
-            NavigationStack {
             ContentView()
-            }
+                .environmentObject(themeManager)
         }
-        .modelContainer(container)
+        .modelContainer(sharedModelContainer)
     }
 }

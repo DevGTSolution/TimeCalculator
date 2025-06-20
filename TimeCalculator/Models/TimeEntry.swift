@@ -16,6 +16,7 @@ final class TimeEntry {
     var color: String
     var lastModified: Date
     var isSynced: Bool
+    var calculationStepsData: Data? // Store calculation steps as JSON
     
     init(
         id: UUID = UUID(),
@@ -25,7 +26,8 @@ final class TimeEntry {
         seconds: Int = 0,
         date: Date = Date(),
         label: String = "",
-        color: String = "blue"
+        color: String = "blue",
+        calculationSteps: [CalculationStep] = []
     ) {
         self.id = id
         self.days = days
@@ -37,6 +39,7 @@ final class TimeEntry {
         self.color = color
         self.lastModified = Date()
         self.isSynced = false
+        self.calculationStepsData = try? JSONEncoder().encode(calculationSteps)
     }
     
     var totalSeconds: Int {
@@ -49,5 +52,11 @@ final class TimeEntry {
     
     var displayString: String {
         "\(Int(hours))h \(Int(minutes))m"
+    }
+    
+    // Helper to get calculation steps
+    var calculationSteps: [CalculationStep] {
+        guard let data = calculationStepsData else { return [] }
+        return (try? JSONDecoder().decode([CalculationStep].self, from: data)) ?? []
     }
 } 

@@ -1,393 +1,391 @@
 import SwiftUI
+import SwiftData
 
-struct CalculatorEntry: Identifiable, Equatable {
-    let id = UUID()
-    var hours: Int
-    var minutes: Int
+struct CalculationStep: Identifiable, Equatable, Codable {
+    var id = UUID()
     var seconds: Int
+    var operation: ContentView.Operation?
 }
 
 struct ContentView: View {
-    @State private var showMenu = false
-    @State private var input = "" // Raw digits, e.g. "222"
-    @State private var lastResult: String? = nil
-    @State private var pendingOperation: Operation? = nil
+    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var themeManager: ThemeManager
+    
+    @State private var displayInput = "0"
     @State private var storedSeconds: Int? = nil
-    @State private var history: [CalculatorEntry] = []
+    @State private var pendingOperation: Operation? = nil
+    @State private var isEnteringNewNumber = true
     
-    enum Operation: String { case add = "+", subtract = "-", multiply = "×", divide = "÷" }
-    
-    // Right-to-left: seconds, minutes, hours
-    private var hours: Int {
-        let padded = input.leftPadding(toLength: 6, withPad: "0")
-        return Int(padded.prefix(2)) ?? 0
-    }
-    private var minutes: Int {
-        let padded = input.leftPadding(toLength: 6, withPad: "0")
-        return Int(padded.dropFirst(2).prefix(2)) ?? 0
-    }
-    private var seconds: Int {
-        let padded = input.leftPadding(toLength: 6, withPad: "0")
-        return Int(padded.suffix(2)) ?? 0
+    @State private var history: [TimeEntry] = []
+    @State private var showHistory = false
+    @State private var showMenu = false
+    @State private var showEditSheet = false
+    @State private var shouldDismissHistory = false
+
+    @State private var steps: [CalculationStep] = []
+    @State private var currentInput: String = "0"
+
+    enum Operation: String, CaseIterable, Codable {
+        case add = "+", subtract = "-", multiply = "×", divide = "÷"
     }
     
-    private var formatted: String {
-        String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+    let buttons: [[String]] = [
+        ["C", "⌫", "%", "÷"],
+        ["7", "8", "9", "×"],
+        ["4", "5", "6", "-"],
+        ["1", "2", "3", "+"],
+        ["0", "="]
+    ]
+
+    private var displayValue: String {
+        let cleanInput = currentInput.filter { ("0"..."9").contains($0) || $0 == "-" }
+        guard !cleanInput.isEmpty, cleanInput != "-" else { return "00:00:00" }
+        
+        let isNegative = cleanInput.hasPrefix("-")
+        let absoluteInput = isNegative ? String(cleanInput.dropFirst()) : cleanInput
+        
+        let padded = absoluteInput.leftPadding(toLength: 6, withPad: "0")
+        let hours = Int(padded.prefix(2)) ?? 0
+        let minutes = Int(padded.dropFirst(2).prefix(2)) ?? 0
+        let seconds = Int(padded.suffix(2)) ?? 0
+        
+        let sign = isNegative ? "-" : ""
+        return "\(sign)\(String(format: "%02d:%02d:%02d", hours, minutes, seconds))"
+    }
+
+    private var currentSeconds: Int {
+        let cleanInput = currentInput.filter { ("0"..."9").contains($0) || $0 == "-" }
+        guard !cleanInput.isEmpty, cleanInput != "-" else { return 0 }
+
+        let isNegative = cleanInput.hasPrefix("-")
+        let absoluteInput = isNegative ? String(cleanInput.dropFirst()) : cleanInput
+
+        let padded = absoluteInput.leftPadding(toLength: 6, withPad: "0")
+        let hours = Int(padded.prefix(2)) ?? 0
+        let minutes = Int(padded.dropFirst(2).prefix(2)) ?? 0
+        let seconds = Int(padded.suffix(2)) ?? 0
+        
+        let totalSeconds = hours * 3600 + minutes * 60 + seconds
+        return isNegative ? -totalSeconds : totalSeconds
     }
     
-    private var totalSeconds: Int {
-        hours * 3600 + minutes * 60 + seconds
-    }
-    
-    // Running total of all history entries
-    private var totalHistorySeconds: Int {
-        history.reduce(0) { $0 + $1.hours * 3600 + $1.minutes * 60 + $1.seconds }
-    }
-    private var totalHistoryFormatted: String {
-        let h = totalHistorySeconds / 3600
-        let m = (totalHistorySeconds % 3600) / 60
-        let s = totalHistorySeconds % 60
-        return String(format: "%02d:%02d:%02d  (%dh %dm %ds)", h, m, s, h, m, s)
+    private var runningCalculationDisplay: String {
+        steps.map { step in
+            "\(formatSecondsForDisplay(step.seconds)) \(step.operation?.rawValue ?? "")"
+        }.joined(separator: " ")
     }
     
     var body: some View {
-        ZStack(alignment: .leading) {
-            // Main content (your ScrollView and everything else)
-            mainContent
-                .blur(radius: showMenu ? 8 : 0)
-                .animation(.easeInOut, value: showMenu)
-
-            // Dimmed background when menu is open
-            if showMenu {
-                Color.black.opacity(0.3)
-                    .ignoresSafeArea()
-                    .onTapGesture { withAnimation { showMenu = false } }
-            }
-
-            // Side menu
-            if showMenu {
+        ZStack {
+            themeManager.currentTheme.background.ignoresSafeArea()
+            
+            // This ZStack layers the SideMenu and the mainInterface
+            ZStack(alignment: .leading) {
                 SideMenu(showMenu: $showMenu)
                     .frame(width: 260)
-                    .transition(.move(edge: .leading))
+                    .offset(x: showMenu ? 0 : -260) // Slide in/out
+                
+                mainInterface
+                    .cornerRadius(showMenu ? 20.0 : 0.0)
+                    .scaleEffect(showMenu ? 0.85 : 1.0)
+                    .offset(x: showMenu ? 260 : 0)
+                    .disabled(showMenu)
+            }
+            .onTapGesture {
+                if showMenu {
+                    withAnimation {
+                        showMenu = false
+                    }
+                }
             }
         }
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
+        .sheet(isPresented: $showHistory) {
+            HistoryView(history: $history, onRestoreCalculation: restoreCalculation)
+                .environmentObject(themeManager)
+        }
+        .onChange(of: shouldDismissHistory) { _, newValue in
+            if newValue {
+                showHistory = false
+                shouldDismissHistory = false
+            }
+        }
+        .sheet(isPresented: $showEditSheet) {
+            EditCalculationView(steps: $steps)
+                .environmentObject(themeManager)
+        }
+    }
+    
+    var mainInterface: some View {
+        VStack(spacing: 12) {
+            // Header with Menu button
+            HStack {
                 Button(action: { withAnimation { showMenu.toggle() } }) {
                     Image(systemName: "line.3.horizontal")
-                        .imageScale(.large)
+                        .font(.title)
+                        .foregroundColor(themeManager.currentTheme.display)
                 }
-            }
-        }
-    }
-    
-    private var mainContent: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                Spacer(minLength: 24)
-                Text(formatted)
-                    .font(.system(size: 56, weight: .bold, design: .monospaced))
-                    .padding(.top)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                
-                Text("\(hours)h \(minutes)m \(seconds)s")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                
-                if let result = lastResult {
-                    Text(result)
-                        .font(.title2)
-                        .foregroundColor(.accentColor)
-                        .padding(.top, 8)
-                }
-                
                 Spacer()
-                
-                // Calculator Keypad - Attempting to match H&M app layout
-                VStack(spacing: 12) { // Spacing between rows
-                    HStack(spacing: 12) { // Top row: Clear, ⌫, ÷, ×
-                        CalculatorButton(key: "Clear", handleKey: handleKey)
-                            .frame(maxWidth: .infinity)
-                            .aspectRatio(1.0, contentMode: .fit) // Clear spans ~2 columns
-
-                        CalculatorButton(key: "⌫", handleKey: handleKey)
-                             .frame(maxWidth: .infinity)
-                             .aspectRatio(1.0, contentMode: .fit) // Backspace standard width
-
-                        CalculatorButton(key: "+", handleKey: handleKey)
-                            .frame(maxWidth: .infinity)
-                            .aspectRatio(1.0, contentMode: .fit) // Divide standard width
-                    }
-
-                    HStack(spacing: 12) { // Second row: 7, 8, 9, -
-                         CalculatorButton(key: "7", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
-                         CalculatorButton(key: "8", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
-                         CalculatorButton(key: "9", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
-                        CalculatorButton(key: "-", handleKey: handleKey)
-                            .frame(maxWidth: .infinity)
-                            .aspectRatio(1.0, contentMode: .fit) // Multiply standard width
-                    }
-
-                    HStack(spacing: 12) { // Third row: 4, 5, 6, +
-                         CalculatorButton(key: "4", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
-                         CalculatorButton(key: "5", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
-                         CalculatorButton(key: "6", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
-                        CalculatorButton(key: "×", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
-                    }
-
-                    HStack(spacing: 12) { // Fourth row: 1, 2, 3
-                         CalculatorButton(key: "1", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
-                         CalculatorButton(key: "2", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
-                         CalculatorButton(key: "3", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
-                        CalculatorButton(key: "÷", handleKey: handleKey).frame(maxWidth: .infinity).aspectRatio(1.0, contentMode: .fit)
-                    }
-
-                     HStack(spacing: 12) { // Fifth row: 0, =
-                         CalculatorButton(key: "0", handleKey: handleKey)
-                             .frame(maxWidth: .infinity)
-                             .aspectRatio(3.0, contentMode: .fit) // Make 0 span ~3 columns
-
-                         CalculatorButton(key: "=", handleKey: handleKey)
-                            .frame(maxWidth: .infinity)
-                            .aspectRatio(2.0, contentMode: .fit) // = standard width
-                     }
-                }
-                .padding(.horizontal)
-                .padding(.bottom)
-                
-                // History Section
-                if !history.isEmpty {
-                    Text("Total: \(totalHistoryFormatted)")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .padding(.vertical, 8)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    Text("History")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
-                    List {
-                        ForEach(history) { entry in
-                            HStack {
-                                Text(String(format: "%02d:%02d:%02d", entry.hours, entry.minutes, entry.seconds))
-                                    .font(.system(.title3, design: .monospaced))
-                                Text("(\(entry.hours)h \(entry.minutes)m \(entry.seconds)s)")
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Button {
-                                    // Edit: load entry into input
-                                    input = String(format: "%d%02d%02d", entry.hours, entry.minutes, entry.seconds)
-                                } label: {
-                                    Image(systemName: "pencil")
-                                }
-                                Button {
-                                    // Delete: remove entry
-                                    if let idx = history.firstIndex(of: entry) {
-                                        history.remove(at: idx)
-                                    }
-                                } label: {
-                                    Image(systemName: "trash")
-                                }
-                            }
-                        }
-                        .onDelete { indices in
-                            history.remove(atOffsets: indices)
-                        }
-                    }
-                    .frame(height: min(CGFloat(history.count) * 56, 300))
-                    .listStyle(.plain)
-                    .padding(.horizontal, -20)
-                    .padding(.bottom, 32)
-
-                    // Clear All History Button
-                    Button(role: .destructive) {
-                        history.removeAll()
-                    } label: {
-                        Text("Clear All History")
-                            .frame(maxWidth: .infinity)
-                    }
+            }
+            .padding(.horizontal)
+            
+            Spacer()
+            
+            // Secondary Display (Running Calculation)
+            HStack {
+                Spacer()
+                Text(runningCalculationDisplay)
+                    .font(.title3)
+                    .foregroundColor(themeManager.currentTheme.display.opacity(0.7))
                     .padding(.horizontal)
-                    .padding(.bottom)
+                    .onTapGesture {
+                        showEditSheet.toggle()
+                    }
+            }
+            
+            // Primary Display
+            HStack {
+                Spacer()
+                Text(displayValue)
+                    .font(.system(size: 80, weight: .light))
+                    .foregroundColor(themeManager.currentTheme.display)
+                    .padding(.horizontal)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
+            
+            // Buttons
+            VStack(spacing: 12) {
+                ForEach(buttons, id: \.self) { row in
+                    HStack(spacing: 12) {
+                        ForEach(row, id: \.self) { key in
+                            CalculatorButton(key: key, handleKey: handleKey)
+                        }
+                    }
                 }
             }
+            .padding(.bottom)
+
+            // History Button
+            Button(action: { showHistory.toggle() }) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.title2)
+                    .foregroundColor(themeManager.currentTheme.display)
+            }
+            .padding(.bottom)
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            Color.clear.frame(height: 32)
-        }
-        .background(Color.primary.opacity(0.05))
-        .ignoresSafeArea(edges: .bottom)
-    }
-    
-    private var keypadButtons: [String] {
-        ["C","⌫","÷","×",
-         "7","8","9","-",
-         "4","5","6","+",
-         "1","2","3","=",
-         "0"]
+        .padding(.horizontal)
     }
     
     private func handleKey(_ key: String) {
+        if let digit = Int(key) {
+            handleDigit(digit)
+        } else if let op = Operation(rawValue: key) {
+            handleOperation(op)
+        } else {
+            handleSpecialKey(key)
+        }
+    }
+    
+    private func handleDigit(_ digit: Int) {
+        if currentInput == "0" {
+            currentInput = "\(digit)"
+        } else if currentInput.count < 6 {
+            currentInput.append("\(digit)")
+        }
+    }
+    
+    private func handleOperation(_ op: Operation) {
+        // Add the current number and the operation as a step
+        steps.append(CalculationStep(seconds: currentSeconds, operation: op))
+        currentInput = "0" // Reset for next number
+    }
+    
+    private func handleSpecialKey(_ key: String) {
         switch key {
         case "C":
-            input = ""
-            lastResult = nil
-            pendingOperation = nil
+            steps.removeAll()
+            currentInput = "0"
         case "⌫":
-            if !input.isEmpty { input.removeLast() }
-        case "+":
-            // Add to history
-            let entry = CalculatorEntry(hours: hours, minutes: minutes, seconds: seconds)
-            history.append(entry)
-            input = ""
-            lastResult = nil
-            pendingOperation = nil
-            storedSeconds = nil
+            if !currentInput.isEmpty && currentInput != "0" {
+                currentInput.removeLast()
+                if currentInput.isEmpty {
+                    currentInput = "0"
+                }
+            }
+        case "%":
+             currentInput = formatSeconds(Int(Double(currentSeconds) * 0.01))
         case "=":
-            // Add to history and clear input (acts as "done")
-            let entry = CalculatorEntry(hours: hours, minutes: minutes, seconds: seconds)
-            history.append(entry)
-            input = ""
-            lastResult = nil
-            pendingOperation = nil
-            storedSeconds = nil
-        case "-", "×", "÷":
-            if pendingOperation == nil {
-                storedSeconds = totalSeconds
-                input = ""
-                pendingOperation = Operation(rawValue: key)
-            } else if let op = pendingOperation, let lhs = storedSeconds {
-                let rhs = totalSeconds
-                let result = calculate(lhs: lhs, rhs: rhs, op: op)
-                lastResult = formatResult(seconds: result)
-                storedSeconds = result
-                input = ""
-                pendingOperation = Operation(rawValue: key)
-            }
+            // Add the final number as a step
+            steps.append(CalculationStep(seconds: currentSeconds, operation: nil))
+            let result = calculateTotal()
+            let newEntry = TimeEntry(
+                seconds: result,
+                label: runningCalculationDisplay + " = \(formatSecondsForDisplay(result))",
+                calculationSteps: steps // Store the steps for restoration
+            )
+            history.insert(newEntry, at: 0)
+            modelContext.insert(newEntry)
+            
+            // Keep the steps visible but set current input to result
+            currentInput = formatSeconds(result)
+            // Don't clear steps - keep them for continued editing
         default:
-            if input.count < 6, key.allSatisfy({ $0.isNumber }) {
-                input.append(key)
+            break
+        }
+    }
+
+    private func calculateTotal() -> Int {
+        var total: Double = 0
+        var lastOperation: Operation = .add
+
+        for step in steps {
+            let value = Double(step.seconds)
+            switch lastOperation {
+            case .add:
+                total += value
+            case .subtract:
+                total -= value
+            case .multiply:
+                total *= (value / 3600.0)
+            case .divide:
+                if value != 0 {
+                    total /= (value / 3600.0)
+                }
             }
+            lastOperation = step.operation ?? .add
         }
+        return Int(total)
     }
     
-    private func calculate(lhs: Int, rhs: Int, op: Operation) -> Int {
-        switch op {
-        case .add: return lhs + rhs
-        case .subtract: return max(lhs - rhs, 0)
-        case .multiply: return lhs * rhs
-        case .divide: return rhs == 0 ? 0 : lhs / rhs
-        }
+    private func formatSeconds(_ totalSeconds: Int) -> String {
+        let isNegative = totalSeconds < 0
+        let secondsAbs = abs(totalSeconds)
+        let hours = secondsAbs / 3600
+        let minutes = (secondsAbs % 3600) / 60
+        let seconds = secondsAbs % 60
+        let sign = isNegative ? "-" : ""
+        let formatted = String(format: "%02d%02d%02d", hours, minutes, seconds)
+        return "\(sign)\(formatted)"
     }
-    
-    private func formatResult(seconds: Int) -> String {
-        let h = seconds / 3600
-        let m = (seconds % 3600) / 60
-        let s = seconds % 60
-        return String(format: "%02d:%02d:%02d  (%dh %dm %ds)", h, m, s, h, m, s)
+
+    private func formatSecondsForDisplay(_ totalSeconds: Int) -> String {
+        let isNegative = totalSeconds < 0
+        let secondsAbs = abs(totalSeconds)
+        let hours = secondsAbs / 3600
+        let minutes = (secondsAbs % 3600) / 60
+        let seconds = secondsAbs % 60
+        let sign = isNegative ? "-" : ""
+        return "\(sign)\(String(format: "%02d:%02d:%02d", hours, minutes, seconds))"
+    }
+
+    private func restoreCalculation(_ steps: [CalculationStep]) {
+        self.steps = steps
+        if let lastStep = steps.last {
+            currentInput = formatSeconds(lastStep.seconds)
+        } else {
+            currentInput = "0"
+        }
+        shouldDismissHistory = true
     }
 }
 
-private extension String {
-    var isOperator: Bool { ["+","-","×","÷"].contains(self) }
+// MARK: - Side Menu
+struct SideMenu: View {
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Binding var showMenu: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Select Theme")
+                .font(.title2)
+                .bold()
+                .padding()
+                .padding(.top, 40)
+
+            Text("Light/Dark mode follows your system settings")
+                .font(.caption)
+                .foregroundColor(themeManager.currentTheme.display.opacity(0.7))
+                .padding(.horizontal)
+
+            ForEach(themeManager.availableThemes, id: \.name) { theme in
+                Button(theme.name) {
+                    themeManager.applyTheme(theme)
+                    withAnimation { showMenu = false }
+                }
+                .padding()
+                .foregroundColor(themeManager.currentTheme.name == theme.name ? themeManager.currentTheme.operationButton : themeManager.currentTheme.display)
+            }
+
+            Spacer()
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(themeManager.currentTheme.background)
+        .foregroundColor(themeManager.currentTheme.display)
+        .edgesIgnoringSafeArea(.top)
+    }
+}
+
+// MARK: - History View
+struct HistoryView: View {
+    @EnvironmentObject private var themeManager: ThemeManager
+    @Binding var history: [TimeEntry]
+    let onRestoreCalculation: ([CalculationStep]) -> Void
+    
+    var body: some View {
+        NavigationView {
+            List {
+                ForEach(history) { entry in
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(entry.label)
+                                .font(.headline)
+                            Text(entry.date, style: .time)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+                    .onTapGesture {
+                        onRestoreCalculation(entry.calculationSteps)
+                    }
+                }
+                .onDelete { indices in
+                    history.remove(atOffsets: indices)
+                }
+            }
+            .navigationTitle("History")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    EditButton()
+                }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Clear") {
+                        history.removeAll()
+                    }
+                }
+            }
+        }
+        .colorScheme(themeManager.currentTheme.background == .black ? .dark : .light)
+    }
+}
+
+extension String {
     func leftPadding(toLength: Int, withPad character: Character) -> String {
-        if self.count < toLength {
-            return String(repeatElement(character, count: toLength - self.count)) + self
+        let stringLength = self.count
+        if stringLength < toLength {
+            return String(repeatElement(character, count: toLength - stringLength)) + self
         } else {
             return String(self.suffix(toLength))
         }
     }
 }
 
-struct SideMenu: View {
-    @Environment(\.colorScheme) var colorScheme // Access color scheme
-    @Binding var showMenu: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 32) {
-            Text("Menu")
-                .font(.title2)
-                .bold()
-                .padding(.top, 40)
-                .frame(maxWidth: .infinity, alignment: .center)
-
-            // Add more menu items here
-
-            Spacer()
-            
-            // Copyright notice
-            VStack(alignment: .center, spacing: 4) {
-                Text("© 2024 GTSolution")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Text("All rights reserved")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.bottom, 20)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(colorScheme == .dark ? Color.black : Color.white) // Use adaptive background color for side menu
-        .edgesIgnoringSafeArea(.all)
-    }
-}
-
-struct CalculatorButton: View {
-    @Environment(\.colorScheme) var colorScheme
-    
-    let key: String
-    let handleKey: (String) -> Void
-
-    var body: some View {
-        Button(action: { handleKey(key) }) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(buttonBackgroundColor())
-
-                if key == "⌫" {
-                    Image(systemName: "delete.left")
-                        .font(.title)
-                        .foregroundColor(buttonForegroundColor())
-                } else {
-                    Text(key)
-                        .font(.title)
-                        .fontWeight(buttonFontWeight())
-                        .foregroundColor(buttonForegroundColor())
-                }
-            }
-        }
-    }
-
-    private var isOperator: Bool { ["+","-","×","÷"].contains(key) }
-
-    private func buttonBackgroundColor() -> Color {
-        switch key {
-        case "C": return colorScheme == .dark ? Color.gray : .red // Gray in dark mode, red in light mode
-        case "=": return .accentColor
-        case "⌫": return Color.gray.opacity(0.5) // Semi-transparent gray for backspace
-        case "+", "-", "×", "÷": return .accentColor
-        default: return colorScheme == .dark ? Color.gray.opacity(0.3) : Color.gray.opacity(0.1) // Lighter gray in light, darker in dark
-        }
-    }
-
-    private func buttonForegroundColor() -> Color {
-        switch key {
-        case "C": return .white // White text for the red/gray Clear button
-        case "=", "+", "-", "×", "÷": return .white
-        default: return .primary // Automatically adapting text color for numbers
-        }
-    }
-
-    private func buttonFontWeight() -> Font.Weight {
-        switch key {
-        case "C", "=", "+", "-", "×", "÷": return .bold
-        default: return .regular
-        }
-    }
-}
-
 #Preview {
     ContentView()
-}
+        .environmentObject(ThemeManager())
+        .modelContainer(for: TimeEntry.self, inMemory: true)
+} 

@@ -24,28 +24,28 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		00363DEA2D272D1300DF0CF9 /* TimeCalculator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TimeCalculator.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		00363DFB2D272D1600DF0CF9 /* TimeCalculatorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimeCalculatorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		00363E052D272D1600DF0CF9 /* TimeCalculatorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimeCalculatorUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		00363DEA2D272D1300DF0CF9 /* GTS TimeCalculator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "GTS TimeCalculator.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		00363DFB2D272D1600DF0CF9 /* GTS TimeCalculatorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "GTS TimeCalculatorTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		00363E052D272D1600DF0CF9 /* GTS TimeCalculatorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "GTS TimeCalculatorUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		00B5C37F2E099A7F002D8E7D /* Exceptions for "TimeCalculator" folder in "TimeCalculator" target */ = {
+		00B5C3822E099EFB002D8E7D /* Exceptions for "GTS TimeCalculator" folder in "GTS TimeCalculator" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 00363DE92D272D1300DF0CF9 /* TimeCalculator */;
+			target = 00363DE92D272D1300DF0CF9 /* GTS TimeCalculator */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		00363DEC2D272D1300DF0CF9 /* TimeCalculator */ = {
+		00363DEC2D272D1300DF0CF9 /* GTS TimeCalculator */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				00B5C37F2E099A7F002D8E7D /* Exceptions for "TimeCalculator" folder in "TimeCalculator" target */,
+				00B5C3822E099EFB002D8E7D /* Exceptions for "GTS TimeCalculator" folder in "GTS TimeCalculator" target */,
 			);
-			path = TimeCalculator;
+			path = "GTS TimeCalculator";
 			sourceTree = "<group>";
 		};
 		00363DFE2D272D1600DF0CF9 /* TimeCalculatorTests */ = {
@@ -88,7 +88,7 @@
 		00363DE12D272D1300DF0CF9 = {
 			isa = PBXGroup;
 			children = (
-				00363DEC2D272D1300DF0CF9 /* TimeCalculator */,
+				00363DEC2D272D1300DF0CF9 /* GTS TimeCalculator */,
 				00363DFE2D272D1600DF0CF9 /* TimeCalculatorTests */,
 				00363E082D272D1600DF0CF9 /* TimeCalculatorUITests */,
 				00363DEB2D272D1300DF0CF9 /* Products */,
@@ -98,9 +98,9 @@
 		00363DEB2D272D1300DF0CF9 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				00363DEA2D272D1300DF0CF9 /* TimeCalculator.app */,
-				00363DFB2D272D1600DF0CF9 /* TimeCalculatorTests.xctest */,
-				00363E052D272D1600DF0CF9 /* TimeCalculatorUITests.xctest */,
+				00363DEA2D272D1300DF0CF9 /* GTS TimeCalculator.app */,
+				00363DFB2D272D1600DF0CF9 /* GTS TimeCalculatorTests.xctest */,
+				00363E052D272D1600DF0CF9 /* GTS TimeCalculatorUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,9 +108,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		00363DE92D272D1300DF0CF9 /* TimeCalculator */ = {
+		00363DE92D272D1300DF0CF9 /* GTS TimeCalculator */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 00363E0F2D272D1600DF0CF9 /* Build configuration list for PBXNativeTarget "TimeCalculator" */;
+			buildConfigurationList = 00363E0F2D272D1600DF0CF9 /* Build configuration list for PBXNativeTarget "GTS TimeCalculator" */;
 			buildPhases = (
 				00363DE62D272D1300DF0CF9 /* Sources */,
 				00363DE72D272D1300DF0CF9 /* Frameworks */,
@@ -121,18 +121,18 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				00363DEC2D272D1300DF0CF9 /* TimeCalculator */,
+				00363DEC2D272D1300DF0CF9 /* GTS TimeCalculator */,
 			);
-			name = TimeCalculator;
+			name = "GTS TimeCalculator";
 			packageProductDependencies = (
 			);
 			productName = TimeCalculator;
-			productReference = 00363DEA2D272D1300DF0CF9 /* TimeCalculator.app */;
+			productReference = 00363DEA2D272D1300DF0CF9 /* GTS TimeCalculator.app */;
 			productType = "com.apple.product-type.application";
 		};
-		00363DFA2D272D1600DF0CF9 /* TimeCalculatorTests */ = {
+		00363DFA2D272D1600DF0CF9 /* GTS TimeCalculatorTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 00363E122D272D1600DF0CF9 /* Build configuration list for PBXNativeTarget "TimeCalculatorTests" */;
+			buildConfigurationList = 00363E122D272D1600DF0CF9 /* Build configuration list for PBXNativeTarget "GTS TimeCalculatorTests" */;
 			buildPhases = (
 				00363DF72D272D1600DF0CF9 /* Sources */,
 				00363DF82D272D1600DF0CF9 /* Frameworks */,
@@ -146,16 +146,16 @@
 			fileSystemSynchronizedGroups = (
 				00363DFE2D272D1600DF0CF9 /* TimeCalculatorTests */,
 			);
-			name = TimeCalculatorTests;
+			name = "GTS TimeCalculatorTests";
 			packageProductDependencies = (
 			);
 			productName = TimeCalculatorTests;
-			productReference = 00363DFB2D272D1600DF0CF9 /* TimeCalculatorTests.xctest */;
+			productReference = 00363DFB2D272D1600DF0CF9 /* GTS TimeCalculatorTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		00363E042D272D1600DF0CF9 /* TimeCalculatorUITests */ = {
+		00363E042D272D1600DF0CF9 /* GTS TimeCalculatorUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 00363E152D272D1600DF0CF9 /* Build configuration list for PBXNativeTarget "TimeCalculatorUITests" */;
+			buildConfigurationList = 00363E152D272D1600DF0CF9 /* Build configuration list for PBXNativeTarget "GTS TimeCalculatorUITests" */;
 			buildPhases = (
 				00363E012D272D1600DF0CF9 /* Sources */,
 				00363E022D272D1600DF0CF9 /* Frameworks */,
@@ -169,11 +169,11 @@
 			fileSystemSynchronizedGroups = (
 				00363E082D272D1600DF0CF9 /* TimeCalculatorUITests */,
 			);
-			name = TimeCalculatorUITests;
+			name = "GTS TimeCalculatorUITests";
 			packageProductDependencies = (
 			);
 			productName = TimeCalculatorUITests;
-			productReference = 00363E052D272D1600DF0CF9 /* TimeCalculatorUITests.xctest */;
+			productReference = 00363E052D272D1600DF0CF9 /* GTS TimeCalculatorUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -199,7 +199,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 00363DE52D272D1300DF0CF9 /* Build configuration list for PBXProject "TimeCalculator" */;
+			buildConfigurationList = 00363DE52D272D1300DF0CF9 /* Build configuration list for PBXProject "GTS TimeCalculator" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -213,9 +213,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				00363DE92D272D1300DF0CF9 /* TimeCalculator */,
-				00363DFA2D272D1600DF0CF9 /* TimeCalculatorTests */,
-				00363E042D272D1600DF0CF9 /* TimeCalculatorUITests */,
+				00363DE92D272D1300DF0CF9 /* GTS TimeCalculator */,
+				00363DFA2D272D1600DF0CF9 /* GTS TimeCalculatorTests */,
+				00363E042D272D1600DF0CF9 /* GTS TimeCalculatorUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -271,12 +271,12 @@
 /* Begin PBXTargetDependency section */
 		00363DFD2D272D1600DF0CF9 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 00363DE92D272D1300DF0CF9 /* TimeCalculator */;
+			target = 00363DE92D272D1300DF0CF9 /* GTS TimeCalculator */;
 			targetProxy = 00363DFC2D272D1600DF0CF9 /* PBXContainerItemProxy */;
 		};
 		00363E072D272D1600DF0CF9 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 00363DE92D272D1300DF0CF9 /* TimeCalculator */;
+			target = 00363DE92D272D1300DF0CF9 /* GTS TimeCalculator */;
 			targetProxy = 00363E062D272D1600DF0CF9 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -408,16 +408,16 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_ENTITLEMENTS = TimeCalculator/TimeCalculator.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "GTS TimeCalculator/TimeCalculator.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_ASSET_PATHS = "\"TimeCalculator/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"GTS TimeCalculator/Preview Content\"";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = TimeCalculator/Info.plist;
+				INFOPLIST_FILE = "GTS TimeCalculator/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "GTS Time Calculator";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
@@ -429,8 +429,7 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -455,16 +454,16 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_ENTITLEMENTS = TimeCalculator/TimeCalculator.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "GTS TimeCalculator/TimeCalculator.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_ASSET_PATHS = "\"TimeCalculator/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"GTS TimeCalculator/Preview Content\"";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = TimeCalculator/Info.plist;
+				INFOPLIST_FILE = "GTS TimeCalculator/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "GTS Time Calculator";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
@@ -476,8 +475,7 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -514,7 +512,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TimeCalculator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TimeCalculator";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GTS TimeCalculator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GTS TimeCalculator";
 				XROS_DEPLOYMENT_TARGET = 2.2;
 			};
 			name = Debug;
@@ -537,7 +535,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TimeCalculator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TimeCalculator";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GTS TimeCalculator.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GTS TimeCalculator";
 				XROS_DEPLOYMENT_TARGET = 2.2;
 			};
 			name = Release;
@@ -589,7 +587,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		00363DE52D272D1300DF0CF9 /* Build configuration list for PBXProject "TimeCalculator" */ = {
+		00363DE52D272D1300DF0CF9 /* Build configuration list for PBXProject "GTS TimeCalculator" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				00363E0D2D272D1600DF0CF9 /* Debug */,
@@ -598,7 +596,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		00363E0F2D272D1600DF0CF9 /* Build configuration list for PBXNativeTarget "TimeCalculator" */ = {
+		00363E0F2D272D1600DF0CF9 /* Build configuration list for PBXNativeTarget "GTS TimeCalculator" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				00363E102D272D1600DF0CF9 /* Debug */,
@@ -607,7 +605,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		00363E122D272D1600DF0CF9 /* Build configuration list for PBXNativeTarget "TimeCalculatorTests" */ = {
+		00363E122D272D1600DF0CF9 /* Build configuration list for PBXNativeTarget "GTS TimeCalculatorTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				00363E132D272D1600DF0CF9 /* Debug */,
@@ -616,7 +614,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		00363E152D272D1600DF0CF9 /* Build configuration list for PBXNativeTarget "TimeCalculatorUITests" */ = {
+		00363E152D272D1600DF0CF9 /* Build configuration list for PBXNativeTarget "GTS TimeCalculatorUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				00363E162D272D1600DF0CF9 /* Debug */,

@@ -10,6 +10,7 @@ struct CalculationStep: Identifiable, Equatable, Codable {
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var themeManager: ThemeManager
+    @Environment(\.colorScheme) var colorScheme
     
     @State private var displayInput = "0"
     @State private var storedSeconds: Int? = nil
@@ -24,6 +25,12 @@ struct ContentView: View {
 
     @State private var steps: [CalculationStep] = []
     @State private var currentInput: String = "0"
+    @State private var editLabel: String = ""
+    @State private var editColor: String = "Blue"
+
+    @Query(sort: [SortDescriptor(\TimeEntry.date, order: .reverse)]) private var persistedHistory: [TimeEntry]
+
+    @State private var editingHistoryEntry: TimeEntry? = nil
 
     enum Operation: String, CaseIterable, Codable {
         case add = "+", subtract = "-", multiply = "×", divide = "÷"
@@ -75,33 +82,35 @@ struct ContentView: View {
         }.joined(separator: " ")
     }
     
+    // State for editing label
+    @State private var showEditLabelAlert = false
+
     var body: some View {
-        ZStack {
-            themeManager.currentTheme.background.ignoresSafeArea()
-            
-            // This ZStack layers the SideMenu and the mainInterface
-            ZStack(alignment: .leading) {
+        ZStack(alignment: .leading) {
+            // Main content, offset and scaled when menu is open
+            mainInterface
+                .scaleEffect(showMenu ? 0.92 : 1)
+                .offset(x: showMenu ? 260 : 0)
+                .disabled(showMenu)
+                .animation(.easeInOut(duration: 0.25), value: showMenu)
+
+            // Side menu, only visible when open
+            if showMenu {
                 SideMenu(showMenu: $showMenu)
                     .frame(width: 260)
-                    .offset(x: showMenu ? 0 : -260) // Slide in/out
-                
-                mainInterface
-                    .cornerRadius(showMenu ? 20.0 : 0.0)
-                    .scaleEffect(showMenu ? 0.85 : 1.0)
-                    .offset(x: showMenu ? 260 : 0)
-                    .disabled(showMenu)
-            }
-            .onTapGesture {
-                if showMenu {
-                    withAnimation {
-                        showMenu = false
-                    }
-                }
+                    .transition(.move(edge: .leading))
+                    .zIndex(2)
             }
         }
+        .background(themeManager.currentTheme.background.ignoresSafeArea())
         .sheet(isPresented: $showHistory) {
-            HistoryView(history: $history, onRestoreCalculation: restoreCalculation)
+            HistoryView(history: $history, onRestoreCalculation: restoreCalculation, onEditLabel: editLabel)
                 .environmentObject(themeManager)
+                .preferredColorScheme(colorScheme)
+        }
+        .onAppear {
+            // Load persisted history
+            history = persistedHistory
         }
         .onChange(of: shouldDismissHistory) { _, newValue in
             if newValue {
@@ -109,10 +118,43 @@ struct ContentView: View {
                 shouldDismissHistory = false
             }
         }
-        .sheet(isPresented: $showEditSheet) {
-            EditCalculationView(steps: $steps)
+        .sheet(isPresented: $showEditSheet, onDismiss: {
+            // Save label and color change to history if editing a restored entry
+            if let editingEntry = editingHistoryEntry {
+                if editLabel != editingEntry.label {
+                    editingEntry.label = editLabel
+                    editingEntry.lastModified = Date()
+                }
+                if editColor != editingEntry.color {
+                    editingEntry.color = editColor
+                    editingEntry.lastModified = Date()
+                }
+                try? modelContext.save()
+                if let idx = history.firstIndex(where: { $0.id == editingEntry.id }) {
+                    history[idx] = editingEntry
+                }
+            }
+            editingHistoryEntry = nil
+        }) {
+            EditCalculationView(steps: $steps, label: $editLabel, color: $editColor)
                 .environmentObject(themeManager)
+                .preferredColorScheme(colorScheme)
         }
+        .alert("Edit Name", isPresented: $showEditLabelAlert, actions: {
+            TextField("Name", text: $editLabel)
+            Button("Save") {
+                if let editingEntry = editingHistoryEntry {
+                    editingEntry.label = editLabel
+                    editingEntry.lastModified = Date()
+                    try? modelContext.save()
+                    // Update local history array
+                    if let idx = history.firstIndex(where: { $0.id == editingEntry.id }) {
+                        history[idx] = editingEntry
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        })
     }
     
     var mainInterface: some View {
@@ -218,14 +260,25 @@ struct ContentView: View {
             // Add the final number as a step
             steps.append(CalculationStep(seconds: currentSeconds, operation: nil))
             let result = calculateTotal()
+            let defaultLabel = DateFormatter.localizedString(from: Date(), dateStyle: .medium, timeStyle: .short)
+            let labelToUse = editLabel.isEmpty ? defaultLabel : editLabel
+            let colorToUse = editColor.isEmpty ? themeManager.currentTheme.name : editColor
+            let absResult = abs(result)
+            let hours = absResult / 3600
+            let minutes = (absResult % 3600) / 60
+            let seconds = absResult % 60
+            let isNegative = result < 0
             let newEntry = TimeEntry(
-                seconds: result,
-                label: runningCalculationDisplay + " = \(formatSecondsForDisplay(result))",
+                hours: isNegative ? -hours : hours,
+                minutes: minutes,
+                seconds: seconds,
+                label: labelToUse,
+                color: colorToUse,
                 calculationSteps: steps // Store the steps for restoration
             )
             history.insert(newEntry, at: 0)
             modelContext.insert(newEntry)
-            
+            try? modelContext.save()
             // Keep the steps visible but set current input to result
             currentInput = formatSeconds(result)
             // Don't clear steps - keep them for continued editing
@@ -285,7 +338,24 @@ struct ContentView: View {
         } else {
             currentInput = "0"
         }
+        // Set editLabel and editColor to the label and color of the restored entry if available
+        if let entry = history.first(where: { $0.calculationSteps == steps }) {
+            editLabel = entry.label
+            editColor = entry.color
+            editingHistoryEntry = entry
+        } else {
+            editLabel = ""
+            editColor = themeManager.currentTheme.name
+            editingHistoryEntry = nil
+        }
         shouldDismissHistory = true
+    }
+
+    // Label editing handler
+    private func editLabel(_ entry: TimeEntry) {
+        editingHistoryEntry = entry
+        editLabel = entry.label
+        showEditLabelAlert = true
     }
 }
 
@@ -299,20 +369,20 @@ struct SideMenu: View {
             Text("Select Theme")
                 .font(.title2)
                 .bold()
-                .padding()
                 .padding(.top, 40)
+                .padding(.leading)
 
             Text("Light/Dark mode follows your system settings")
                 .font(.caption)
                 .foregroundColor(themeManager.currentTheme.display.opacity(0.7))
-                .padding(.horizontal)
+                .padding(.leading)
 
             ForEach(themeManager.availableThemes, id: \.name) { theme in
                 Button(theme.name) {
                     themeManager.applyTheme(theme)
                     withAnimation { showMenu = false }
                 }
-                .padding()
+                .padding(.leading)
                 .foregroundColor(themeManager.currentTheme.name == theme.name ? themeManager.currentTheme.operationButton : themeManager.currentTheme.display)
             }
 
@@ -330,8 +400,7 @@ struct SideMenu: View {
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.bottom, 20)
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical)
         .background(themeManager.currentTheme.background)
         .foregroundColor(themeManager.currentTheme.display)
         .edgesIgnoringSafeArea(.top)
@@ -343,30 +412,40 @@ struct HistoryView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @Binding var history: [TimeEntry]
     let onRestoreCalculation: ([CalculationStep]) -> Void
+    let onEditLabel: (TimeEntry) -> Void
     
     var body: some View {
         NavigationView {
             List {
                 ForEach(history) { entry in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(entry.label)
-                                .font(.headline)
-                            Text(entry.date, style: .time)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
-                    }
+                    TimeEntryRow(entry: TimeEntryRowEntry(
+                        hours: entry.hours,
+                        minutes: entry.minutes,
+                        seconds: entry.seconds,
+                        label: entry.label,
+                        color: entry.color,
+                        date: entry.date
+                    ), onEditLabel: { _ in onEditLabel(entry) })
                     .onTapGesture {
                         onRestoreCalculation(entry.calculationSteps)
                     }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            if let idx = history.firstIndex(where: { $0.id == entry.id }) {
+                                history.remove(at: idx)
+                            }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        Button {
+                            onEditLabel(entry)
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                    }
                 }
                 .onDelete { indices in
-                    history.remove(atOffsets: indices)
+                    history.removeAll { entry in indices.contains(where: { $0 == history.firstIndex(of: entry) }) }
                 }
             }
             .navigationTitle("History")
@@ -381,7 +460,6 @@ struct HistoryView: View {
                 }
             }
         }
-        .colorScheme(themeManager.currentTheme.background == .black ? .dark : .light)
     }
 }
 

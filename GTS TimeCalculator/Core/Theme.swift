@@ -22,6 +22,26 @@ struct RedTheme: Theme {
     let name: String = "Red"
 }
 
+struct PurpleTheme: Theme {
+    let accentColor: Color = .purple
+    let name: String = "Purple"
+}
+
+struct TealTheme: Theme {
+    let accentColor: Color = .teal
+    let name: String = "Teal"
+}
+
+struct GreenTheme: Theme {
+    let accentColor: Color = .green
+    let name: String = "Green"
+}
+
+struct MagentaTheme: Theme {
+    let accentColor: Color = Color(red: 1.0, green: 0.0, blue: 0.5)
+    let name: String = "Magenta"
+}
+
 // MARK: - Theme Manager
 @MainActor
 class ThemeManager: ObservableObject {
@@ -30,7 +50,11 @@ class ThemeManager: ObservableObject {
     let availableThemes: [Theme] = [
         OrangeTheme(),
         BlueTheme(),
-        RedTheme()
+        RedTheme(),
+        PurpleTheme(),
+        TealTheme(),
+        GreenTheme(),
+        MagentaTheme()
     ]
     
     private let userDefaults = UserDefaults.standard

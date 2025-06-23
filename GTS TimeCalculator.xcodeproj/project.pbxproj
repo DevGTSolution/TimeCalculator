@@ -29,9 +29,22 @@
 		00363E052D272D1600DF0CF9 /* TimeCalculatorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimeCalculatorUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		00B5C37F2E099A7F002D8E7D /* Exceptions for "TimeCalculator" folder in "TimeCalculator" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 00363DE92D272D1300DF0CF9 /* TimeCalculator */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		00363DEC2D272D1300DF0CF9 /* TimeCalculator */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				00B5C37F2E099A7F002D8E7D /* Exceptions for "TimeCalculator" folder in "TimeCalculator" target */,
+			);
 			path = TimeCalculator;
 			sourceTree = "<group>";
 		};
@@ -404,7 +417,9 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TimeCalculator/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "GTS Time Calculator";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -449,7 +464,9 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TimeCalculator/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "GTS Time Calculator";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;

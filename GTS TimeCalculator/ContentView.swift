@@ -317,6 +317,18 @@ struct SideMenu: View {
             }
 
             Spacer()
+            
+            // Copyright notice
+            VStack(alignment: .center, spacing: 4) {
+                Text("© 2025 GTSolution.pro")
+                    .font(.caption)
+                    .foregroundColor(themeManager.currentTheme.display.opacity(0.6))
+                Text("All rights reserved")
+                    .font(.caption2)
+                    .foregroundColor(themeManager.currentTheme.display.opacity(0.5))
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.bottom, 20)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
